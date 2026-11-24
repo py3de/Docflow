@@ -43,6 +43,7 @@ const STATUS: Record<DocStatus, { label: string; tone: string; icon: ReactNode }
   NEEDS_REVIEW: { label: 'Needs review', tone: 'badge-warning', icon: <AlertTriangle size={13} /> },
   APPROVED: { label: 'Approved', tone: 'badge-good', icon: <CheckCircle2 size={13} /> },
   MATCHED: { label: 'Matched to PO', tone: 'badge-good', icon: <CheckCircle2 size={13} /> },
+  REJECTED: { label: 'Rejected', tone: 'badge-critical', icon: <XCircle size={13} /> },
   FAILED: { label: 'Failed', tone: 'badge-critical', icon: <XCircle size={13} /> },
 };
 export function StatusBadge({ status }: { status: DocStatus }) {

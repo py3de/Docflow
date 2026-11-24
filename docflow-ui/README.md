@@ -5,7 +5,7 @@ Documents are uploaded, text is extracted (PDFBox / Tesseract), fields are pulle
 LLM with structured output, validated against business rules, matched to purchase orders,
 and anything uncertain goes to a human reviewer.
 
-The backend is a Spring Boot 3 / Java 21 service (separate repo). This UI talks to it through a
+The backend is the Spring Boot 3 / Java 21 service in `../docflow-api`. This UI talks to it through a
 single typed interface and also runs fully on mock data, so it can be demoed without the backend.
 
 ## Screens
@@ -25,7 +25,7 @@ Light and dark mode are both supported.
 
 ```bash
 npm install
-cp .env.example .env    # leave VITE_API_URL empty for mock data
+cp .env.example .env    # empty VITE_API_URL = mock data; VITE_API_URL=/api/v1 = Java backend
 npm run dev             # http://localhost:5173
 npm run build           # production build -> dist/
 npm run build:preview   # single self-contained HTML -> dist-preview/index.html

@@ -7,6 +7,7 @@ export type DocStatus =
   | 'VALIDATING'
   | 'NEEDS_REVIEW'
   | 'APPROVED'
+  | 'REJECTED'
   | 'MATCHED'
   | 'FAILED';
 
@@ -78,6 +79,13 @@ export interface DocumentJob {
   poMatch?: PoMatch;
   traceId: string;
 }
+
+/** Row of GET /documents: the list endpoint leaves out fields, line items and timings. */
+export type DocumentSummary = Pick<
+  DocumentJob,
+  | 'id' | 'tenantId' | 'fileName' | 'docType' | 'status' | 'receivedAt' | 'vendor'
+  | 'grossAmount' | 'currency' | 'avgConfidence' | 'model' | 'tokens' | 'costEur'
+>;
 
 export interface DailyVolume {
   date: string; // ISO date

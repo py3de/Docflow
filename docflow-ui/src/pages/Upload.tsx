@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, CloudUpload, FileText, Loader2 } from 'lucide-react';
-import { api } from '../api/client';
+import { api, usingMock } from '../api/client';
 import type { DocumentJob } from '../types';
-import { Card, stageLabel } from '../components/ui';
+import { Card, stageLabel, statusLabel } from '../components/ui';
 
 const ACCEPT = ['application/pdf', 'image/png', 'image/jpeg', 'image/tiff'];
 const MAX_MB = 20;
 const STEPS = ['INGEST', 'OCR', 'LLM_EXTRACTION', 'VALIDATION', 'PO_MATCHING'] as const;
 
-interface Item { file: File; job?: DocumentJob; step: number; error?: string }
+interface Item { file: File; job?: DocumentJob; step: number; error?: string; real?: boolean }
 
 export function Upload() {
   const [over, setOver] = useState(false);
@@ -30,6 +30,11 @@ export function Upload() {
     fresh.forEach((it) => {
       if (it.error) return;
       api.upload({ file: it.file, tenantId: tenant, docType }).then((job) => {
+        if (!usingMock) {
+          // Real backend: show what the API returned (step 1 stores the file; extraction is step 2).
+          setItems((prev) => prev.map((p) => (p.file === it.file ? { ...p, job, step: STEPS.length, real: true } : p)));
+          return;
+        }
         setItems((prev) => prev.map((p) => (p.file === it.file ? { ...p, job, step: 1 } : p)));
         // In the real app this is a Server-Sent Events stream from /documents/{id}/events.
         let s = 1;
@@ -38,6 +43,8 @@ export function Upload() {
           setItems((prev) => prev.map((p) => (p.file === it.file ? { ...p, step: s } : p)));
           if (s >= STEPS.length) clearInterval(timer);
         }, 700);
+      }).catch((e: Error) => {
+        setItems((prev) => prev.map((p) => (p.file === it.file ? { ...p, error: e.message } : p)));
       });
     });
   };
@@ -79,7 +86,7 @@ export function Upload() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.file.name}</span>
                           <span className="muted" style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>
-                            {it.error ? '' : done ? 'Ready for review' : it.step === 0 ? 'Uploading…' : `${stageLabel[STEPS[it.step - 1]]}…`}
+                            {it.error ? '' : it.real && it.job ? statusLabel(it.job.status) : done ? 'Ready for review' : it.step === 0 ? 'Uploading…' : `${stageLabel[STEPS[it.step - 1]]}…`}
                           </span>
                         </div>
                         {it.error ? (

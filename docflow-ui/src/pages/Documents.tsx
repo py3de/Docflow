@@ -10,7 +10,7 @@ const FILTERS: { key: string; label: string; match: (s: DocStatus) => boolean }[
   { key: 'review', label: 'Needs review', match: (s) => s === 'NEEDS_REVIEW' },
   { key: 'done', label: 'Completed', match: (s) => s === 'MATCHED' || s === 'APPROVED' },
   { key: 'flight', label: 'In progress', match: (s) => s === 'RECEIVED' || s === 'EXTRACTING' || s === 'VALIDATING' },
-  { key: 'failed', label: 'Failed', match: (s) => s === 'FAILED' },
+  { key: 'failed', label: 'Failed / rejected', match: (s) => s === 'FAILED' || s === 'REJECTED' },
 ];
 
 export function Documents({ reviewOnly = false }: { reviewOnly?: boolean }) {

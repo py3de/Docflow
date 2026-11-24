@@ -158,6 +158,11 @@ export function DocumentDetail() {
               ? `${openIssues} flagged · ${lowConf} below 85% confidence · hover a field to find it on the page`
               : `Model ${doc.model} · ${doc.tokens.toLocaleString('en-GB')} tokens · ${fmtEur(doc.costEur, 4)}`}
           >
+            {fields.length === 0 && (
+              <div className="muted" style={{ fontSize: 13, padding: '4px 2px' }}>
+                No fields yet. This document is stored and waiting for extraction.
+              </div>
+            )}
             {fields.map((f) => (
               <div key={f.key} className={`field-row${focus === f.key ? ' focus' : ''}`}
                 onMouseEnter={() => setFocus(f.key)} onMouseLeave={() => setFocus(undefined)}>

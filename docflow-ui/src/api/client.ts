@@ -1,14 +1,14 @@
-import type { DocumentJob, EvalRun, ExtractedField, OverviewMetrics, UploadRequest } from '../types';
+import type { DocumentJob, DocumentSummary, EvalRun, ExtractedField, OverviewMetrics, UploadRequest } from '../types';
 import { MOCK_DOCS, MOCK_EVALS, MOCK_OVERVIEW } from './mock';
 
 /**
  * One interface, two implementations. The UI never knows which one it talks to.
- * Set VITE_API_URL (e.g. http://localhost:8080/api/v1) to use the Spring Boot backend;
+ * Set VITE_API_URL=/api/v1 to use the Spring Boot backend (the Vite dev server proxies /api to :8080);
  * leave it empty to run on mock data.
  */
 export interface DocFlowApi {
   getOverview(): Promise<OverviewMetrics>;
-  listDocuments(): Promise<DocumentJob[]>;
+  listDocuments(): Promise<DocumentSummary[]>;
   getDocument(id: string): Promise<DocumentJob | undefined>;
   submitReview(id: string, fields: ExtractedField[], decision: 'APPROVE' | 'REJECT'): Promise<DocumentJob>;
   upload(req: UploadRequest): Promise<DocumentJob>;
@@ -71,7 +71,7 @@ const mockApi: DocFlowApi = {
     const doc = docs.find((d) => d.id === id);
     if (!doc) throw new Error('Document not found');
     doc.fields = fields.map((f) => ({ ...f, issues: f.corrected ? [] : f.issues }));
-    doc.status = decision === 'APPROVE' ? 'APPROVED' : 'FAILED';
+    doc.status = decision === 'APPROVE' ? 'APPROVED' : 'REJECTED';
     return { ...doc };
   },
   async upload({ file, tenantId, docType }) {
