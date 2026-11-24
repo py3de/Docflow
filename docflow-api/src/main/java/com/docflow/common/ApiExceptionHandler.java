@@ -1,6 +1,7 @@
 package com.docflow.common;
 
 import java.net.URI;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -37,6 +38,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidRequestException.class)
     ProblemDetail invalid(InvalidRequestException ex) {
         return problem(ex.getStatus(), "invalid-request", ex.getMessage());
+    }
+
+    /** e.g. ?sort=string from Swagger's placeholder: a client error (400), not a server error (500). */
+    @ExceptionHandler(PropertyReferenceException.class)
+    ProblemDetail unknownSortProperty(PropertyReferenceException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "invalid-request",
+                "Unknown property '" + ex.getPropertyName() + "' in sort. Use e.g. sort=receivedAt,desc.");
     }
 
     private static ProblemDetail problem(HttpStatus status, String type, String detail) {
