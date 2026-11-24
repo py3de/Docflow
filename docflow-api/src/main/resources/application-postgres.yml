@@ -1,0 +1,7 @@
+# Activate with: mvn spring-boot:run -Dspring-boot.run.profiles=postgres
+# Start the database first: docker compose up -d
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/docflow}
+    username: ${DB_USER:docflow}
+    password: ${DB_PASSWORD:docflow}

@@ -1,0 +1,57 @@
+# Default profile: runs with zero setup on an in-memory H2 database.
+# Use the "postgres" profile (application-postgres.yml) for a real database.
+server:
+  port: 8080
+
+spring:
+  application:
+    name: docflow-api
+  datasource:
+    # MODE=PostgreSQL keeps H2 close to production SQL
+    url: jdbc:h2:mem:docflow;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    open-in-view: false            # no lazy loading from controllers: mapping happens inside transactions
+    hibernate:
+      ddl-auto: none               # Flyway owns the schema
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 200
+        order_inserts: true
+        order_updates: true
+  flyway:
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 100MB
+  mvc:
+    problemdetails:
+      enabled: true                # RFC 7807 problem+json error bodies
+  data:
+    web:
+      pageable:
+        max-page-size: 200
+  jackson:
+    default-property-inclusion: non_null
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+docflow:
+  cors:
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173
+  storage:
+    root: ./data/uploads
+  demo-data:
+    enabled: true                  # seeds realistic sample documents on first start
+    days: 14
