@@ -3,7 +3,9 @@
 Upload an invoice PDF; DocFlow reads it, extracts the fields, checks them against business rules and
 purchase orders, and either posts it automatically or sends it to a person for review.
 
-**Live demo on SAP BTP:** _(add your URL after the first deploy)_. It uses the offline extractor and fictional data;
+**Live demo on SAP BTP:** [Open DocFlow](https://docflow-9093cc73.cfapps.us10-001.hana.ondemand.com)
+
+It uses the offline extractor and fictional data;
 the Upload page has one-click sample invoices.
 
 | Folder | What | Tech |
