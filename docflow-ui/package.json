@@ -9,7 +9,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "build:preview": "tsc -b && vite build -c vite.preview.config.ts"
+    "build:preview": "tsc -b && vite build -c vite.preview.config.ts",
+    "build:cloud": "tsc -b && vite build --mode cloud --outDir ../docflow-api/src/main/resources/static --emptyOutDir"
   },
   "dependencies": {
     "lucide-react": "^1.78.0",

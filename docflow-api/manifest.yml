@@ -1,0 +1,19 @@
+# SAP BTP Cloud Foundry deployment. Run "cf push" from this folder (see ../DEPLOY.md).
+applications:
+  - name: docflow-9093cc73                 # becomes the URL: https://docflow-9093cc73.<your CF domain>
+    path: target/docflow-api-0.1.0-SNAPSHOT.jar
+    memory: 1024M
+    instances: 1
+    buildpacks:
+      - sap_java_buildpack_jakarta
+    health-check-type: http
+    health-check-http-endpoint: /actuator/health
+    timeout: 180                           # first start seeds demo data into the database
+    env:
+      SPRING_PROFILES_ACTIVE: cloud
+      TARGET_RUNTIME: main                 # an executable Spring Boot jar, not a WAR in Tomcat
+      JBP_CONFIG_COMPONENTS: "jres: ['com.sap.xs.java.buildpack.jdk.SAPMachineJDK']"
+      JBP_CONFIG_SAP_MACHINE_JDK: "{ version: 21.+ }"
+      DOCFLOW_LLM_PROVIDER: offline        # public demo: no API key, no cost
+    services:
+      - docflow-db                         # cf create-service postgresql-db trial docflow-db

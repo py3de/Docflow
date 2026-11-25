@@ -1,6 +1,9 @@
-﻿node_modules/
+node_modules/
 dist/
 dist-preview/
 .env
 target/
 data/
+.idea/
+# built by "npm run build:cloud", never committed
+docflow-api/src/main/resources/static/

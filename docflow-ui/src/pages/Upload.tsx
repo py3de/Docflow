@@ -17,6 +17,13 @@ const STATUS_STEP: Partial<Record<DocumentJob['status'], number>> = {
 };
 const FINISHED = new Set<DocumentJob['status']>(['NEEDS_REVIEW', 'MATCHED', 'FAILED', 'APPROVED', 'REJECTED']);
 
+/** Fictional invoices shipped with the app, so anyone can try the pipeline without their own PDF. */
+const SAMPLES = [
+  { file: 'sample-invoice-clean.pdf', label: 'Clean invoice', expect: 'matched automatically' },
+  { file: 'sample-invoice-vat-error.pdf', label: 'Wrong VAT', expect: 'sent to review' },
+  { file: 'sample-invoice-wrong-po.pdf', label: 'Wrong PO number', expect: 'fuzzy-matched, then review' },
+];
+
 export function Upload() {
   const [over, setOver] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
@@ -24,7 +31,7 @@ export function Upload() {
   const [docType, setDocType] = useState<DocumentJob['docType']>('INVOICE');
   const input = useRef<HTMLInputElement>(null);
 
-  const start = (files: FileList | null) => {
+  const start = (files: FileList | File[] | null) => {
     if (!files) return;
     const list = Array.from(files);
     const fresh: Item[] = list.map((file) => ({
@@ -91,6 +98,19 @@ export function Upload() {
             <div className="muted">PDF, PNG, JPEG or TIFF · up to {MAX_MB} MB each · many files at once</div>
             <input ref={input} type="file" multiple hidden accept={ACCEPT.join(',')} onChange={(e) => start(e.target.files)} />
           </div>
+
+          <Card title="No invoice at hand? Try a sample" sub="Fictional invoices; each shows a different outcome">
+            <div className="toolbar">
+              {SAMPLES.map((s) => (
+                <button key={s.file} className="btn" title={`Expected: ${s.expect}`} onClick={async () => {
+                  const blob = await fetch(`samples/${s.file}`).then((r) => r.blob());
+                  start([new File([blob], s.file, { type: 'application/pdf' })]);
+                }}>
+                  <FileText size={15} />{s.label}
+                </button>
+              ))}
+            </div>
+          </Card>
 
           {items.length > 0 && (
             <Card title="This session" pad>

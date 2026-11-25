@@ -1,6 +1,8 @@
 package com.docflow.document;
 
 import com.docflow.common.Tenants;
+import com.docflow.common.UploadLimiter;
+import jakarta.servlet.http.HttpServletRequest;
 import com.docflow.document.DocumentDtos.DocumentJob;
 import com.docflow.document.DocumentDtos.DocumentSummary;
 import com.docflow.document.DocumentDtos.ReviewRequest;
@@ -30,9 +32,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentController {
 
     private final DocumentService service;
+    private final UploadLimiter limiter;
 
-    public DocumentController(DocumentService service) {
+    public DocumentController(DocumentService service, UploadLimiter limiter) {
         this.service = service;
+        this.limiter = limiter;
     }
 
     /**
@@ -60,8 +64,11 @@ public class DocumentController {
     public ResponseEntity<DocumentJob> upload(
             @RequestHeader(name = Tenants.HEADER, required = false) String tenantId,
             @RequestPart("file") MultipartFile file,
-            @RequestParam(name = "docType", defaultValue = "INVOICE") DocType docType) {
-        UploadResult result = service.upload(Tenants.require(tenantId), file, docType);
+            @RequestParam(name = "docType", defaultValue = "INVOICE") DocType docType,
+            HttpServletRequest request) {
+        String tenant = Tenants.require(tenantId);
+        limiter.check(clientAddress(request));
+        UploadResult result = service.upload(tenant, file, docType);
         if (!result.created()) {
             return ResponseEntity.ok(result.document());
         }
@@ -84,6 +91,15 @@ public class DocumentController {
         return ResponseEntity.ok()
                 .cacheControl(org.springframework.http.CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePrivate())
                 .body(png);
+    }
+
+    /** Behind Cloud Foundry's router the caller's address is the first entry of X-Forwarded-For. */
+    private static String clientAddress(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping("/{id}/review")

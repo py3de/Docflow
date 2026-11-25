@@ -5,12 +5,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Typed view of the docflow.* settings in application.yml. */
 @ConfigurationProperties(prefix = "docflow")
-public record DocFlowProperties(Cors cors, Storage storage, DemoData demoData, Pipeline pipeline, Llm llm) {
+public record DocFlowProperties(Cors cors, Storage storage, DemoData demoData, Pipeline pipeline, Llm llm, Limits limits) {
 
     public record Cors(List<String> allowedOrigins) {
     }
 
-    public record Storage(String root) {
+    /** type: "local" (files on disk, default) or "database" (PostgreSQL, used in the cloud). */
+    public record Storage(String root, String type) {
+    }
+
+    /** Protection for a public demo. 0 = no limit. */
+    public record Limits(int uploadsPerIpPerHour, int uploadsPerDay) {
     }
 
     public record DemoData(boolean enabled, int days) {

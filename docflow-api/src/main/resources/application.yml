@@ -51,7 +51,11 @@ docflow:
   cors:
     allowed-origins: http://localhost:5173,http://127.0.0.1:5173
   storage:
+    type: local                    # local = files on disk; database = in PostgreSQL (cloud profile)
     root: ./data/uploads
+  limits:
+    uploads-per-ip-per-hour: 0     # 0 = unlimited; the cloud profile sets limits for the public demo
+    uploads-per-day: 0
   demo-data:
     enabled: true                  # seeds realistic sample documents on first start
     days: 14

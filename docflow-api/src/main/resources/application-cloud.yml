@@ -1,0 +1,36 @@
+# Profile for SAP BTP Cloud Foundry (SPRING_PROFILES_ACTIVE=cloud, set in manifest.yml).
+# The database comes from the bound service (see CloudDatabaseConfig), not from these settings.
+server:
+  port: ${PORT:8080}                 # Cloud Foundry tells the app which port to listen on
+  forward-headers-strategy: framework  # trust the platform router's X-Forwarded-* headers (https, host)
+
+spring:
+  flyway:
+    schemas: docflow                 # own schema; created on first start (BTP's "public" schema is not empty)
+    default-schema: docflow
+  servlet:
+    multipart:
+      max-file-size: 5MB             # public demo: invoices are small
+      max-request-size: 10MB
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+
+docflow:
+  storage:
+    type: database                   # the app's own disk is wiped on every restart
+  cors:
+    allowed-origins: ""              # the UI is served by the same app: no cross-origin calls needed
+  limits:
+    uploads-per-ip-per-hour: 20      # public demo protection
+    uploads-per-day: 300
+  llm:
+    provider: ${DOCFLOW_LLM_PROVIDER:offline}   # offline on the public demo: no key, no cost
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true

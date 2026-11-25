@@ -1,0 +1,78 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: docflow-ui/package-lock.json
+      - name: Build UI into the backend's static resources
+        working-directory: docflow-ui
+        run: |
+          npm ci
+          npm run build:cloud
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Build and test backend
+        working-directory: docflow-api
+        run: mvn -B verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: docflow-api/target/surefire-reports
+      - name: Upload application jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: docflow-jar
+          path: docflow-api/target/docflow-api-*.jar
+
+  deploy:
+    name: Deploy to SAP BTP
+    needs: build
+    # Runs only on main, and only once the repository variable CF_DEPLOY is set to "true"
+    # (Settings > Secrets and variables > Actions > Variables), after the first manual deploy worked.
+    if: github.ref == 'refs/heads/main' && vars.CF_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CF_API: https://api.cf.us10-001.hana.ondemand.com
+      CF_ORG: 9093cc73trial
+      CF_SPACE: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: docflow-jar
+          path: docflow-api/target
+      - name: Install Cloud Foundry CLI
+        run: |
+          curl -sL "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v8&source=github" | sudo tar -xz -C /usr/local/bin
+          cf version
+      - name: Log in and push
+        working-directory: docflow-api
+        env:
+          CF_USERNAME: ${{ secrets.CF_USERNAME }}
+          CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
+        run: |
+          cf api "$CF_API"
+          cf auth
+          cf target -o "$CF_ORG" -s "$CF_SPACE"
+          cf push

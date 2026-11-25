@@ -88,6 +88,10 @@ dashboard has data straight away. Turn that off with `docflow.demo-data.enabled=
 | http://localhost:8080/v3/api-docs | OpenAPI spec (JSON) |
 | http://localhost:8080/actuator/health | Health check |
 
+**In the cloud (SAP BTP):** see [`../DEPLOY.md`](../DEPLOY.md). The `cloud` profile reads the bound PostgreSQL
+service from `VCAP_SERVICES`, stores uploaded PDFs in the database, serves the dashboard from the same app,
+and limits uploads for the public demo.
+
 **With PostgreSQL instead of H2** (needs Docker):
 
 ```bash
@@ -162,13 +166,13 @@ src/main/java/com/docflow/
 src/main/resources/db/migration/   Flyway SQL
 src/test/java/com/docflow/         MockMvc API + pipeline end-to-end tests, rule/matcher/LLM-client unit tests
 samples/                           three fictional invoices for demos and tests
-.github/workflows/ci.yml           build + test on every push
+manifest.yml                       SAP BTP Cloud Foundry deployment
 ```
 
 ## Next steps
 
 1. ~~Extraction pipeline~~ ✅ done (OCR for scans still to come)
-2. **Cloud deployment:** Docker image, SAP BTP (Cloud Foundry), managed PostgreSQL, deploy from CI
+2. ~~Cloud deployment~~ ✅ SAP BTP Cloud Foundry, managed PostgreSQL, deploy from CI (see DEPLOY.md)
 3. **Async processing:** RabbitMQ queue, transactional outbox, retries with Resilience4j
 4. **Testcontainers** integration tests against real PostgreSQL; LLM evaluation gate in CI
 5. **Observability:** OpenTelemetry traces, Prometheus metrics
