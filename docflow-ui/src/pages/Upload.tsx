@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, CloudUpload, FileText, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CloudUpload, FileText, Loader2 } from 'lucide-react';
 import { api, usingMock } from '../api/client';
 import type { DocumentJob } from '../types';
 import { Card, stageLabel, statusLabel } from '../components/ui';
@@ -82,6 +82,15 @@ export function Upload() {
           <p>Files are stored, then text extraction, LLM extraction, validation and PO matching run in the background.</p>
         </div>
       </div>
+      {!usingMock && (
+        <div className="card" style={{ padding: '10px 14px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start', borderColor: 'var(--warning)' }}>
+          <AlertTriangle size={17} style={{ color: 'var(--warning)', flex: 'none', marginTop: 1 }} />
+          <div style={{ fontSize: 13.5 }}>
+            <b>Public demo:</b> everything uploaded here is visible to every visitor. Please use the sample invoices
+            or fictional documents only, never real invoices, bank statements or personal documents.
+          </div>
+        </div>
+      )}
       <div className="grid two">
         <div className="stack">
           <div

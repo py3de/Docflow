@@ -50,4 +50,17 @@ public class LocalFileStorage implements FileStorage {
             throw new UncheckedIOException("Stored file not found: " + storagePath, e);
         }
     }
+
+    @Override
+    public void delete(String storagePath) {
+        Path target = root.resolve(storagePath).normalize();
+        if (!target.startsWith(root)) {
+            throw new IllegalArgumentException("Invalid storage path");
+        }
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not delete " + storagePath, e);
+        }
+    }
 }

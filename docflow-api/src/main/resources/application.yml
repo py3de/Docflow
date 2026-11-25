@@ -53,6 +53,10 @@ docflow:
   storage:
     type: local                    # local = files on disk; database = in PostgreSQL (cloud profile)
     root: ./data/uploads
+  admin:
+    # Secret for DELETE /api/v1/admin/documents/{id}. Empty (default) = admin endpoints off.
+    # Set it only as an environment variable (cf set-env), never in Git. At least 16 characters.
+    token: ${DOCFLOW_ADMIN_TOKEN:}
   limits:
     uploads-per-ip-per-hour: 0     # 0 = unlimited; the cloud profile sets limits for the public demo
     uploads-per-day: 0

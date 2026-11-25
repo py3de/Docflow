@@ -8,4 +8,7 @@ public interface FileStorage {
 
     /** Reads a stored file back by the path that store() returned. */
     byte[] read(String storagePath);
+
+    /** Removes a stored file; does nothing if it is not there. */
+    void delete(String storagePath);
 }

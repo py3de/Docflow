@@ -44,4 +44,9 @@ public class DatabaseFileStorage implements FileStorage {
         }
         return content;
     }
+
+    @Override
+    public void delete(String storagePath) {
+        jdbc.update("DELETE FROM stored_file WHERE storage_path = ?", storagePath);
+    }
 }

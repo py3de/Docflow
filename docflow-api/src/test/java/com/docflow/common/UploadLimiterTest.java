@@ -23,7 +23,7 @@ class UploadLimiterTest {
 
     private static UploadLimiter limiter(int perIpPerHour, int perDay, Clock clock) {
         DocFlowProperties props = new DocFlowProperties(null, null, null, null, null,
-                new DocFlowProperties.Limits(perIpPerHour, perDay));
+                new DocFlowProperties.Limits(perIpPerHour, perDay), null);
         return new UploadLimiter(props, clock);
     }
 
