@@ -73,7 +73,7 @@ export function Overview() {
               />
               <p className="muted" style={{ fontSize: 12.5, margin: '14px 0 0' }}>
                 LLM extraction is {fmtPct(o.stageP95.find((s) => s.stage === 'LLM_EXTRACTION')!.ms / o.stageP95.reduce((a, s) => a + s.ms, 0), 0)} of
-                total p95. Traces in Grafana Tempo via OpenTelemetry.
+                total p95, measured per document by the pipeline.
               </p>
             </>
           ) : <Skeleton h={200} />}

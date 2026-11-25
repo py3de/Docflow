@@ -29,7 +29,8 @@ public final class DocumentDtos {
             String id, String tenantId, String fileName, DocType docType, DocStatus status,
             Instant receivedAt, String vendor, BigDecimal grossAmount, String currency,
             double avgConfidence, String model, int tokens, BigDecimal costEur,
-            List<Timing> timings, List<Field> fields, List<Line> lineItems, PoMatch poMatch, String traceId) {
+            List<Timing> timings, List<Field> fields, List<Line> lineItems, PoMatch poMatch, String traceId,
+            String failureReason, Integer pageCount, boolean hasOriginal) {
     }
 
     public record Timing(PipelineStage stage, int ms) {

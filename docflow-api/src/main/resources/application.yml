@@ -55,3 +55,18 @@ docflow:
   demo-data:
     enabled: true                  # seeds realistic sample documents on first start
     days: 14
+  pipeline:
+    review-threshold: 0.85         # a field below this confidence sends the document to human review
+    po-number-pattern: "PO-\\d{9}" # this company's purchase-order format
+  llm:
+    # offline    = built-in rule-based extractor, no API key, no cost (default, used by tests)
+    # anthropic  = Claude via the Messages API
+    # openai     = any OpenAI-compatible Chat Completions API (OpenAI, Mistral, Groq, local Ollama ...)
+    provider: ${DOCFLOW_LLM_PROVIDER:offline}
+    api-key: ${DOCFLOW_LLM_API_KEY:}
+    model: ${DOCFLOW_LLM_MODEL:}
+    base-url: ${DOCFLOW_LLM_BASE_URL:}
+    timeout-seconds: 60
+    # Prices in EUR per million tokens, from your provider's price list. 0 = cost not tracked.
+    input-price-per-million: ${DOCFLOW_LLM_INPUT_PRICE:0}
+    output-price-per-million: ${DOCFLOW_LLM_OUTPUT_PRICE:0}

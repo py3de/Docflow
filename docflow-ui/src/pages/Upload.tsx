@@ -11,6 +11,12 @@ const STEPS = ['INGEST', 'OCR', 'LLM_EXTRACTION', 'VALIDATION', 'PO_MATCHING'] a
 
 interface Item { file: File; job?: DocumentJob; step: number; error?: string; real?: boolean }
 
+/** How far along the pipeline each status is, out of STEPS.length. */
+const STATUS_STEP: Partial<Record<DocumentJob['status'], number>> = {
+  RECEIVED: 1, EXTRACTING: 2, VALIDATING: 4, NEEDS_REVIEW: 5, MATCHED: 5, FAILED: 5, APPROVED: 5, REJECTED: 5,
+};
+const FINISHED = new Set<DocumentJob['status']>(['NEEDS_REVIEW', 'MATCHED', 'FAILED', 'APPROVED', 'REJECTED']);
+
 export function Upload() {
   const [over, setOver] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
@@ -31,8 +37,20 @@ export function Upload() {
       if (it.error) return;
       api.upload({ file: it.file, tenantId: tenant, docType }).then((job) => {
         if (!usingMock) {
-          // Real backend: show what the API returned (step 1 stores the file; extraction is step 2).
-          setItems((prev) => prev.map((p) => (p.file === it.file ? { ...p, job, step: STEPS.length, real: true } : p)));
+          // Real backend: the pipeline runs in the background, so follow its status until it finishes.
+          const update = (j: DocumentJob) =>
+            setItems((prev) => prev.map((p) => (p.file === it.file ? { ...p, job: j, step: STATUS_STEP[j.status] ?? 1, real: true } : p)));
+          update(job);
+          const poll = async () => {
+            for (let i = 0; i < 120; i++) {
+              const j = await api.getDocument(job.id);
+              if (!j) return;
+              update(j);
+              if (FINISHED.has(j.status)) return;
+              await new Promise((r) => setTimeout(r, 800));
+            }
+          };
+          poll().catch(() => undefined);
           return;
         }
         setItems((prev) => prev.map((p) => (p.file === it.file ? { ...p, job, step: 1 } : p)));
@@ -54,7 +72,7 @@ export function Upload() {
       <div className="page-head">
         <div>
           <h1>Upload</h1>
-          <p>Files are stored in object storage and queued; extraction runs asynchronously.</p>
+          <p>Files are stored, then text extraction, LLM extraction, validation and PO matching run in the background.</p>
         </div>
       </div>
       <div className="grid two">
@@ -86,7 +104,7 @@ export function Upload() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.file.name}</span>
                           <span className="muted" style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>
-                            {it.error ? '' : it.real && it.job ? statusLabel(it.job.status) : done ? 'Ready for review' : it.step === 0 ? 'Uploading…' : `${stageLabel[STEPS[it.step - 1]]}…`}
+                            {it.error ? '' : it.real && it.job ? (FINISHED.has(it.job.status) ? statusLabel(it.job.status) : `${statusLabel(it.job.status)}…`) : done ? 'Ready for review' : it.step === 0 ? 'Uploading…' : `${stageLabel[STEPS[it.step - 1]]}…`}
                           </span>
                         </div>
                         {it.error ? (

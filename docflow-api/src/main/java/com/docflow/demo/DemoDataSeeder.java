@@ -15,6 +15,8 @@ import com.docflow.document.ValidationIssue;
 import com.docflow.eval.EvalRunEntity;
 import com.docflow.eval.EvalRunRepository;
 import com.docflow.eval.FieldScore;
+import com.docflow.pipeline.po.PurchaseOrder;
+import com.docflow.pipeline.po.PurchaseOrderRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -97,6 +99,7 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     private final DocumentRepository documents;
     private final EvalRunRepository evalRuns;
+    private final PurchaseOrderRepository purchaseOrders;
     private final TransactionTemplate tx;
     private final Clock clock;
     private final int days;
@@ -104,10 +107,12 @@ public class DemoDataSeeder implements ApplicationRunner {
     private int reviewCounter;
     private int invoiceCounter;
 
-    public DemoDataSeeder(DocumentRepository documents, EvalRunRepository evalRuns, TransactionTemplate tx,
+    public DemoDataSeeder(DocumentRepository documents, EvalRunRepository evalRuns,
+                          PurchaseOrderRepository purchaseOrders, TransactionTemplate tx,
                           Clock clock, DocFlowProperties properties) {
         this.documents = documents;
         this.evalRuns = evalRuns;
+        this.purchaseOrders = purchaseOrders;
         this.tx = tx;
         this.clock = clock;
         this.days = Math.max(1, properties.demoData().days());
@@ -133,6 +138,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
         total += saveBatch(batch);
         tx.executeWithoutResult(s -> evalRuns.saveAll(generateEvalRuns(now)));
+        tx.executeWithoutResult(s -> purchaseOrders.saveAll(purchaseOrders()));
         log.info("Demo data: seeded {} documents in {} ms.", total, System.currentTimeMillis() - started);
     }
 
@@ -304,6 +310,32 @@ public class DemoDataSeeder implements ApplicationRunner {
             issues.forEach(field::addIssue);
             doc.addField(field);
         }
+    }
+
+    // ---- purchase orders --------------------------------------------------------
+
+    /**
+     * Open purchase orders, including the ones the sample invoices in /samples refer to:
+     * sample-invoice-clean.pdf      → PO-450099001 matches exactly            → MATCHED automatically
+     * sample-invoice-vat-error.pdf  → PO-450099002, but the VAT is wrong      → NEEDS_REVIEW
+     * sample-invoice-wrong-po.pdf   → prints PO-450099999; fuzzy match finds PO-450099003 → NEEDS_REVIEW
+     */
+    private static List<PurchaseOrder> purchaseOrders() {
+        List<PurchaseOrder> list = new ArrayList<>();
+        list.add(new PurchaseOrder("po_demo_001", "acme-de", "PO-450099001", "Nordwerk Logistik GmbH", new BigDecimal("719.71"), "EUR"));
+        list.add(new PurchaseOrder("po_demo_002", "acme-de", "PO-450099002", "Alpenblick Papier AG", new BigDecimal("508.13"), "EUR"));
+        list.add(new PurchaseOrder("po_demo_003", "acme-de", "PO-450099003", "Rheintal Office Supply", new BigDecimal("761.60"), "EUR"));
+        String[][] more = {
+                {"PO-450077110", "Kessler Maschinenbau KG", "1650.00"},
+                {"PO-450077111", "Brightline Cloud Services", "237.88"},
+                {"PO-450077112", "Schwarzwald Druck GmbH", "1856.40"},
+                {"PO-450077113", "Mainfeld Facility Services", "761.60"},
+        };
+        for (int i = 0; i < more.length; i++) {
+            list.add(new PurchaseOrder("po_demo_1" + i, "acme-de", more[i][0], more[i][1], new BigDecimal(more[i][2]), "EUR"));
+            list.add(new PurchaseOrder("po_demo_2" + i, "globex-eu", more[i][0], more[i][1], new BigDecimal(more[i][2]), "EUR"));
+        }
+        return list;
     }
 
     // ---- evaluation runs --------------------------------------------------------

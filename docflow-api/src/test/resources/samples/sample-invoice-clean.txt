@@ -1,0 +1,19 @@
+Nordwerk Logistik GmbH
+Hafenweg 12, 68159 Mannheim
+VAT ID: DE287451903
+INVOICE
+Invoice no.: INV-2026-020001
+Date: 2026-11-20
+Bill to: Your order: PO-450099001
+Acme Handels GmbH
+Musterstrasse 1, 69190 Walldorf
+Description Qty Unit price Amount
+Pallet transport Walldorf-Mannheim 3 180.00 540.00
+Shipping labels (roll of 1,000) 2 32.40 64.80
+Net: 604.80 EUR
+VAT 19%: 114.91 EUR
+Total due: 719.71 EUR
+Payable by: 2026-12-20
+Bank: Musterbank AG, IBAN DE89 3704 0044 0532 0130 00
+Questions: billing@example.com, +49 6227 123456
+Nordwerk Logistik GmbH - fictional sample invoice generated for DocFlow tests

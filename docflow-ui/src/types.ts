@@ -78,6 +78,11 @@ export interface DocumentJob {
   lineItems: LineItem[];
   poMatch?: PoMatch;
   traceId: string;
+  /** Why the pipeline failed, readable for people */
+  failureReason?: string;
+  pageCount?: number;
+  /** True when the original PDF can be shown on the review screen */
+  hasOriginal?: boolean;
 }
 
 /** Row of GET /documents: the list endpoint leaves out fields, line items and timings. */

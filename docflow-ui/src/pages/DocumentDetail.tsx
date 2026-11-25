@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowLeft, Check, CheckCircle2, CircleDashed, Link2, Pencil, X, XCircle,
+  AlertTriangle, ArrowLeft, Check, CheckCircle2, CircleDashed, Link2, Pencil, RotateCcw, X, XCircle,
 } from 'lucide-react';
-import { api } from '../api/client';
+import { api, usingMock } from '../api/client';
 import type { DocumentJob, ExtractedField, PipelineStage } from '../types';
 import { Card, Confidence, Empty, Skeleton, StatusBadge, fmtEur, fmtMs, fmtPct, fmtTime, stageLabel } from '../components/ui';
 
@@ -73,6 +73,39 @@ function InvoicePaper({ doc, fields, focus, onFocus }: {
   );
 }
 
+/** The real first page of the uploaded PDF, rendered by the backend, with the extracted fields boxed. */
+function OriginalPage({ doc, fields, focus, onFocus, onUnavailable }: {
+  doc: DocumentJob; fields: ExtractedField[]; focus?: string; onFocus: (k?: string) => void; onUnavailable: () => void;
+}) {
+  const [src, setSrc] = useState<string | null>();
+  useEffect(() => {
+    let url: string | null = null;
+    api.getPageImage(doc.id, 1).then((u) => {
+      url = u;
+      if (u) setSrc(u); else onUnavailable();
+    }).catch(onUnavailable);
+    return () => { if (url) URL.revokeObjectURL(url); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.id]);
+  const pct = (v: number) => `${v * 100}%`;
+  if (!src) return <div className="paper skeleton" />;
+  return (
+    <div className="paper" style={{ aspectRatio: 'auto' }} onMouseLeave={() => onFocus(undefined)}>
+      <img src={src} alt={`Page 1 of ${doc.fileName}`} style={{ width: '100%', display: 'block' }} />
+      {fields.map((f) => f.box && (
+        <div
+          key={f.key}
+          className={`pbox ${boxTone(f)}${focus === f.key ? ' focus' : ''}`}
+          style={{ left: pct(f.box.x), top: pct(f.box.y), width: pct(f.box.w), height: pct(f.box.h) }}
+          onMouseEnter={() => onFocus(f.key)}
+          onClick={() => document.getElementById(`field-${f.key}`)?.focus()}
+          title={`${f.label} · ${fmtPct(f.confidence, 0)} confidence`}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function DocumentDetail() {
   const { id = '' } = useParams();
   const nav = useNavigate();
@@ -82,6 +115,7 @@ export function DocumentDetail() {
   const [focus, setFocus] = useState<string>();
   const [saving, setSaving] = useState<'APPROVE' | 'REJECT' | null>(null);
   const [toast, setToast] = useState<string>();
+  const [noOriginal, setNoOriginal] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -130,6 +164,23 @@ export function DocumentDetail() {
             {doc.fileName} · {doc.id} · received {fmtTime(doc.receivedAt)} · trace {doc.traceId.slice(0, 12)}…
           </p>
         </div>
+        {doc.status === 'FAILED' && !usingMock && (
+          <button className="btn" disabled={!!saving} onClick={async () => {
+            await api.reprocess(doc.id);
+            setToast('Processing again. This page updates when it is done.');
+            const poll = async () => {
+              for (let i = 0; i < 60; i++) {
+                await new Promise((r) => setTimeout(r, 1000));
+                const d = await api.getDocument(doc.id);
+                if (d && d.status !== 'FAILED' && d.status !== 'EXTRACTING' && d.status !== 'VALIDATING' && d.status !== 'RECEIVED') {
+                  setDoc(d); setFields(d.fields); setToast(undefined); return;
+                }
+                if (d && i > 2 && d.status === 'FAILED') { setDoc(d); setToast(undefined); return; }
+              }
+            };
+            poll();
+          }}><RotateCcw size={15} />Process again</button>
+        )}
         {editable && (
           <div className="toolbar">
             <button className="btn btn-danger" disabled={!!saving} onClick={() => submit('REJECT')}><X size={15} />Reject</button>
@@ -141,9 +192,17 @@ export function DocumentDetail() {
         )}
       </div>
 
+      {doc.status === 'FAILED' && doc.failureReason && (
+        <div className="card" style={{ padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start', borderColor: 'var(--critical)' }}>
+          <XCircle size={18} style={{ color: 'var(--critical)', flex: 'none', marginTop: 1 }} />
+          <div><b>Processing failed.</b> <span className="secondary">{doc.failureReason}</span></div>
+        </div>
+      )}
       <div className="review">
         <div className="paper-wrap">
-          <InvoicePaper doc={doc} fields={fields} focus={focus} onFocus={setFocus} />
+          {doc.hasOriginal && !noOriginal
+            ? <OriginalPage doc={doc} fields={fields} focus={focus} onFocus={setFocus} onUnavailable={() => setNoOriginal(true)} />
+            : <InvoicePaper doc={doc} fields={fields} focus={focus} onFocus={setFocus} />}
           <div className="legend" style={{ marginTop: 14, marginBottom: 0, justifyContent: 'center' }}>
             <span><i className="swatch" style={{ background: 'var(--highlight)', border: '1px solid rgba(42,120,214,.5)' }} />Extracted</span>
             <span><i className="swatch" style={{ background: 'var(--highlight-warn)', border: '1px solid rgba(200,140,0,.7)' }} />Low confidence</span>
@@ -221,7 +280,7 @@ export function DocumentDetail() {
                     {t ? <CheckCircle2 size={16} style={{ color: 'var(--good)' }} />
                       : isFailedHere ? <XCircle size={16} style={{ color: 'var(--critical)' }} />
                         : <CircleDashed size={16} style={{ color: 'var(--neutral)' }} />}
-                    <span>{stageLabel[s]}{isFailedHere && <span className="issue critical" style={{ display: 'inline', marginLeft: 8, fontSize: 12.5 }}>LLM provider timeout after 3 retries · sent to DLQ</span>}</span>
+                    <span>{stageLabel[s]}{isFailedHere && <span className="issue critical" style={{ display: 'inline', marginLeft: 8, fontSize: 12.5 }}>{doc.failureReason ?? 'Processing failed'}</span>}</span>
                     <span className="num muted">{t ? fmtMs(t.ms) : isFailedHere ? 'failed' : '—'}</span>
                   </div>
                 );

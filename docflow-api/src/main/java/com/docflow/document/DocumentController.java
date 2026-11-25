@@ -69,6 +69,23 @@ public class DocumentController {
                 .body(result.document());
     }
 
+    /** Runs the extraction pipeline again for a FAILED document. 202: it runs in the background. */
+    @PostMapping("/{id}/reprocess")
+    public ResponseEntity<DocumentJob> reprocess(@RequestHeader(name = Tenants.HEADER, required = false) String tenantId,
+                                                 @PathVariable String id) {
+        return ResponseEntity.accepted().body(service.reprocess(Tenants.require(tenantId), id));
+    }
+
+    /** The original PDF's page as PNG, for the review screen. */
+    @GetMapping(value = "/{id}/pages/{page}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> page(@RequestHeader(name = Tenants.HEADER, required = false) String tenantId,
+                                       @PathVariable String id, @PathVariable int page) {
+        byte[] png = service.pageImage(Tenants.require(tenantId), id, page);
+        return ResponseEntity.ok()
+                .cacheControl(org.springframework.http.CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePrivate())
+                .body(png);
+    }
+
     @PostMapping("/{id}/review")
     public DocumentJob review(@RequestHeader(name = Tenants.HEADER, required = false) String tenantId,
                               @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,

@@ -33,7 +33,8 @@ final class DocumentMapper {
                 d.getPoScore() == null ? 0 : d.getPoScore(), List.copyOf(d.getPoDeltas()));
         return new DocumentJob(d.getId(), d.getTenantId(), d.getFileName(), d.getDocType(), d.getStatus(),
                 d.getReceivedAt(), d.getVendor(), d.getGrossAmount(), d.getCurrency(), d.getAvgConfidence(),
-                d.getModel(), d.getTokens(), d.getCostEur(), timings, fields, lines, po, d.getTraceId());
+                d.getModel(), d.getTokens(), d.getCostEur(), timings, fields, lines, po, d.getTraceId(),
+                d.getFailureReason(), d.getPageCount(), d.hasRenderableOriginal());
     }
 
     private static Field toField(ExtractedFieldEntity f) {

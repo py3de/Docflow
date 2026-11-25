@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Typed view of the docflow.* settings in application.yml. */
 @ConfigurationProperties(prefix = "docflow")
-public record DocFlowProperties(Cors cors, Storage storage, DemoData demoData) {
+public record DocFlowProperties(Cors cors, Storage storage, DemoData demoData, Pipeline pipeline, Llm llm) {
 
     public record Cors(List<String> allowedOrigins) {
     }
@@ -14,5 +14,16 @@ public record DocFlowProperties(Cors cors, Storage storage, DemoData demoData) {
     }
 
     public record DemoData(boolean enabled, int days) {
+    }
+
+    public record Pipeline(double reviewThreshold, String poNumberPattern) {
+    }
+
+    public record Llm(String provider, String apiKey, String model, String baseUrl, int timeoutSeconds,
+                      double inputPricePerMillion, double outputPricePerMillion) {
+
+        public boolean hasApiKey() {
+            return apiKey != null && !apiKey.isBlank();
+        }
     }
 }

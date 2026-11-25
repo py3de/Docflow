@@ -34,4 +34,17 @@ public class LocalFileStorage implements FileStorage {
             throw new UncheckedIOException("Could not store upload", e);
         }
     }
+
+    @Override
+    public byte[] read(String storagePath) {
+        Path target = root.resolve(storagePath).normalize();
+        if (!target.startsWith(root)) {
+            throw new IllegalArgumentException("Invalid storage path");
+        }
+        try {
+            return Files.readAllBytes(target);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Stored file not found: " + storagePath, e);
+        }
+    }
 }

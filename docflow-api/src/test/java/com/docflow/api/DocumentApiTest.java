@@ -224,10 +224,14 @@ class DocumentApiTest {
 
     // ---- helpers ---------------------------------------------------------------
 
-    /** A NEEDS_REVIEW document of acme-de that no test has touched yet. */
+    /**
+     * A seeded NEEDS_REVIEW document of acme-de that no test has touched yet.
+     * Seeded documents have no stored file; uploads from the pipeline tests are left out.
+     */
     private String unreviewedDocumentId() {
         return documents.findAll().stream()
-                .filter(d -> d.getTenantId().equals("acme-de") && d.getStatus() == DocStatus.NEEDS_REVIEW)
+                .filter(d -> d.getTenantId().equals("acme-de") && d.getStatus() == DocStatus.NEEDS_REVIEW
+                        && d.getStoragePath() == null)
                 .map(DocumentEntity::getId)
                 .sorted()
                 .findFirst()

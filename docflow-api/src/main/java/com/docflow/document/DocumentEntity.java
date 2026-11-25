@@ -97,6 +97,13 @@ public class DocumentEntity {
     @Column(name = "po_score")
     private Double poScore;
 
+    /** Why processing failed, shown to the user (e.g. "This PDF has no text layer"). */
+    @Column(name = "failure_reason")
+    private String failureReason;
+
+    @Column(name = "page_count")
+    private Integer pageCount;
+
     /**
      * Optimistic locking: two reviewers saving at once get a 409 instead of overwriting each other.
      * A wrapper type on purpose: null tells Spring Data the entity is new, so save() inserts
@@ -184,6 +191,46 @@ public class DocumentEntity {
         this.storagePath = storagePath;
     }
 
+    /**
+     * Starts a (re)run of the pipeline: everything a previous run produced is removed,
+     * only the upload (INGEST) timing is kept. Must be committed before new fields are added,
+     * because each field key is unique per document.
+     */
+    public void startProcessing() {
+        fields.clear();
+        lineItems.clear();
+        timings.removeIf(t -> t.getStage() != PipelineStage.INGEST);
+        totalLatencyMs = timings.stream().mapToInt(StageTiming::getMs).sum();
+        clearPoMatch();
+        failureReason = null;
+        reviewRequired = false;
+        avgConfidence = 0;
+        status = DocStatus.EXTRACTING;
+    }
+
+    public void clearPoMatch() {
+        poNumber = null;
+        poVendor = null;
+        poAmount = null;
+        poScore = null;
+        poDeltas.clear();
+    }
+
+    public void fail(String reason) {
+        String r = reason == null || reason.isBlank() ? "Processing failed." : reason;
+        failureReason = r.length() > 500 ? r.substring(0, 497) + "..." : r;
+        status = DocStatus.FAILED;
+    }
+
+    public void recordPageCount(int pages) {
+        this.pageCount = pages;
+    }
+
+    /** True when the original is a PDF we can render for the review screen. */
+    public boolean hasRenderableOriginal() {
+        return storagePath != null && storagePath.toLowerCase().endsWith(".pdf");
+    }
+
     public void changeStatus(DocStatus newStatus) {
         if (newStatus == DocStatus.NEEDS_REVIEW) {
             reviewRequired = true;
@@ -215,6 +262,8 @@ public class DocumentEntity {
     public String getPoVendor() { return poVendor; }
     public BigDecimal getPoAmount() { return poAmount; }
     public Double getPoScore() { return poScore; }
+    public String getFailureReason() { return failureReason; }
+    public Integer getPageCount() { return pageCount; }
     public Long getVersion() { return version; }
     public List<ExtractedFieldEntity> getFields() { return fields; }
     public List<LineItem> getLineItems() { return lineItems; }

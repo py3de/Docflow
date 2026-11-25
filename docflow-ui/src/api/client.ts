@@ -13,6 +13,10 @@ export interface DocFlowApi {
   submitReview(id: string, fields: ExtractedField[], decision: 'APPROVE' | 'REJECT'): Promise<DocumentJob>;
   upload(req: UploadRequest): Promise<DocumentJob>;
   listEvalRuns(): Promise<EvalRun[]>;
+  /** Runs the pipeline again for a FAILED document. */
+  reprocess(id: string): Promise<DocumentJob>;
+  /** A page of the original PDF as an object URL, or null when there is none. */
+  getPageImage(id: string, page: number): Promise<string | null>;
 }
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? '';
@@ -47,6 +51,12 @@ const httpApi: DocFlowApi = {
     return http('/documents', { method: 'POST', body, headers: { 'X-Tenant-Id': tenantId } });
   },
   listEvalRuns: () => http('/evals?limit=20'),
+  reprocess: (id) => http(`/documents/${id}/reprocess`, { method: 'POST' }),
+  getPageImage: async (id, page) => {
+    const res = await fetch(`${API_URL}/documents/${id}/pages/${page}`, { headers: { 'X-Tenant-Id': 'acme-de' } });
+    if (!res.ok) return null;
+    return URL.createObjectURL(await res.blob());
+  },
 };
 
 // ---- Mock implementation: in-memory, with small latency so loading states are visible.
@@ -93,6 +103,15 @@ const mockApi: DocFlowApi = {
   async listEvalRuns() {
     await wait();
     return [...MOCK_EVALS].reverse();
+  },
+  async reprocess(id) {
+    await wait();
+    const doc = docs.find((d) => d.id === id);
+    if (!doc) throw new Error('Document not found');
+    return { ...doc };
+  },
+  async getPageImage() {
+    return null; // mock documents have no original PDF
   },
 };
 

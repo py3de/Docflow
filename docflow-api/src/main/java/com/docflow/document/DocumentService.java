@@ -9,6 +9,8 @@ import com.docflow.document.DocumentDtos.DocumentJob;
 import com.docflow.document.DocumentDtos.DocumentSummary;
 import com.docflow.document.DocumentDtos.FieldUpdate;
 import com.docflow.document.DocumentDtos.ReviewRequest;
+import com.docflow.pipeline.DocumentReceivedEvent;
+import com.docflow.pipeline.PdfTextExtractor;
 import com.docflow.storage.FileStorage;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -22,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -36,14 +39,19 @@ public class DocumentService {
     private final FieldCorrectionRepository corrections;
     private final IdempotencyRecordRepository idempotency;
     private final FileStorage storage;
+    private final PdfTextExtractor pdf;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public DocumentService(DocumentRepository documents, FieldCorrectionRepository corrections,
-                           IdempotencyRecordRepository idempotency, FileStorage storage, Clock clock) {
+                           IdempotencyRecordRepository idempotency, FileStorage storage, PdfTextExtractor pdf,
+                           ApplicationEventPublisher events, Clock clock) {
         this.documents = documents;
         this.corrections = corrections;
         this.idempotency = idempotency;
         this.storage = storage;
+        this.pdf = pdf;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -134,7 +142,7 @@ public class DocumentService {
     /**
      * Stores an uploaded file and creates a RECEIVED document.
      * Uploading the same bytes again returns the existing document (deduplicated by SHA-256).
-     * Extraction itself is the next pipeline step (step 2 of the project).
+     * The extraction pipeline starts in the background once this transaction commits.
      */
     @Transactional
     public UploadResult upload(String tenantId, MultipartFile file, DocType docType) {
@@ -162,7 +170,37 @@ public class DocumentService {
         doc.addTiming(new StageTiming(PipelineStage.INGEST, (int) ((System.nanoTime() - started) / 1_000_000)));
         doc.recordExtraction("Pending extraction", BigDecimal.ZERO, "EUR", "none", 0, BigDecimal.ZERO, Ids.traceId());
         documents.save(doc);
+        events.publishEvent(new DocumentReceivedEvent(doc.getId()));
         return new UploadResult(DocumentMapper.toJob(doc), true);
+    }
+
+    /** Runs the pipeline again for a document that failed (e.g. after fixing the LLM settings). */
+    @Transactional
+    public DocumentJob reprocess(String tenantId, String id) {
+        DocumentEntity doc = load(tenantId, id);
+        if (doc.getStatus() != DocStatus.FAILED && doc.getStatus() != DocStatus.RECEIVED) {
+            throw new ConflictException("Only failed or waiting documents can be processed again; this one is "
+                    + doc.getStatus() + ".");
+        }
+        if (doc.getStoragePath() == null) {
+            throw new ConflictException("Document " + id + " has no stored file to process.");
+        }
+        events.publishEvent(new DocumentReceivedEvent(id));
+        return DocumentMapper.toJob(doc);
+    }
+
+    /** Page of the original PDF as PNG, for the review screen. pageNumber starts at 1. */
+    @Transactional(readOnly = true)
+    public byte[] pageImage(String tenantId, String id, int pageNumber) {
+        DocumentEntity doc = load(tenantId, id);
+        if (!doc.hasRenderableOriginal()) {
+            throw new NotFoundException("Document " + id + " has no PDF original to show.");
+        }
+        try {
+            return pdf.renderPage(storage.read(doc.getStoragePath()), pageNumber - 1, 110f);
+        } catch (com.docflow.pipeline.UnreadableDocumentException e) {
+            throw new NotFoundException(e.getMessage());
+        }
     }
 
     // ---- helpers ---------------------------------------------------------------
